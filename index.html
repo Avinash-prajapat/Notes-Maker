@@ -37,7 +37,14 @@
   --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-html, body { overflow: hidden; height: 100%; width: 100%; position: fixed; }
+html, body {
+  overflow: hidden;
+  height: 100%;
+  width: 100%;
+  position: fixed;
+  margin: 0;
+  padding: 0;
+}
 
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -51,7 +58,7 @@ body::before, body::after {
   position: fixed;
   border-radius: 50%;
   filter: blur(80px);
-  opacity: 0.4;
+  opacity: 0.35;
   pointer-events: none;
   z-index: 0;
 }
@@ -70,6 +77,53 @@ body::after {
 @keyframes float {
   0%, 100% { transform: translate(0, 0); }
   50% { transform: translate(40px, -40px); }
+}
+
+/* ============ LOADING OVERLAY ============ */
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(4px);
+  z-index: 9999;
+  display: none;
+  justify-content: center;
+  align-items: center;
+  animation: fadeIn 0.15s ease;
+}
+.loading-overlay.active { display: flex; }
+
+.loading-box {
+  background: white;
+  border-radius: 20px;
+  padding: 28px 40px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  animation: modalSlideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.loading-spinner {
+  width: 48px; height: 48px;
+  border: 4px solid rgba(99,102,241,0.15);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.loading-text {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--gray-700);
+  letter-spacing: -0.01em;
+}
+.loading-subtext {
+  font-size: 0.75rem;
+  color: var(--gray-500);
+  font-weight: 500;
 }
 
 /* ============ APP LAYOUT ============ */
@@ -101,32 +155,49 @@ body::after {
   scrollbar-color: #c7d2fe transparent;
   display: flex;
   flex-direction: column;
+  animation: slideInLeft 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
 }
 .editor-panel::-webkit-scrollbar { width: 6px; }
 .editor-panel::-webkit-scrollbar-track { background: transparent; }
 .editor-panel::-webkit-scrollbar-thumb { background: #c7d2fe; border-radius: 6px; }
 
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* Panel Header */
 .panel-header {
   display: flex;
   align-items: center;
   gap: 12px;
   position: sticky;
-  top: 0;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
+  top: -22px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.96) 85%, rgba(255,255,255,0) 100%);
   z-index: 10;
   margin-left: -22px;
   margin-right: -22px;
   margin-top: -22px;
-  padding: 22px;
-  padding-bottom: 18px;
+  margin-bottom: 0;
+  padding: 22px 22px 24px 22px;
   border-radius: 20px 20px 0 0;
-  border-bottom: 1px solid var(--gray-200);
+  flex-shrink: 0;
+}
+.panel-header::before {
+  content: '';
+  position: absolute;
+  bottom: 8px;
+  left: 22px;
+  right: 22px;
+  height: 1px;
+  background: var(--gray-200);
 }
 .panel-header::after {
   content: '';
   position: absolute;
-  bottom: -1px; left: 22px;
+  bottom: 7px;
+  left: 22px;
   width: 60px; height: 3px;
   background: linear-gradient(90deg, var(--primary), var(--accent));
   border-radius: 3px;
@@ -143,18 +214,24 @@ body::after {
   box-shadow: 0 6px 16px rgba(99,102,241,0.35);
   flex-shrink: 0;
 }
-.panel-header .header-text { flex: 1; }
+.panel-header .header-text { flex: 1; min-width: 0; }
 .panel-header .header-text h1 {
   font-size: 1.15rem;
   color: var(--gray-900);
   font-weight: 800;
   letter-spacing: -0.02em;
   line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .panel-header .header-text p {
   font-size: 0.78rem;
   color: var(--gray-500);
   margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .section {
@@ -177,6 +254,7 @@ body::after {
   color: var(--gray-800);
   font-weight: 700;
   padding: 2px 0;
+  transition: color var(--transition);
 }
 .collapsible-header:hover { color: var(--primary); }
 .collapsible-header::after {
@@ -223,6 +301,7 @@ input:hover, select:hover, textarea:hover { border-color: var(--primary-light); 
 input:focus, select:focus, textarea:focus {
   border-color: var(--primary);
   box-shadow: var(--shadow-glow);
+  transform: translateY(-1px);
 }
 textarea { resize: vertical; min-height: 70px; line-height: 1.5; font-family: inherit; }
 
@@ -238,6 +317,11 @@ textarea { resize: vertical; min-height: 70px; line-height: 1.5; font-family: in
   border-radius: 10px;
   cursor: pointer;
   transition: var(--transition);
+  animation: popIn 0.3s ease;
+}
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
 }
 .library-item:hover {
   border-color: var(--primary-light);
@@ -272,6 +356,9 @@ textarea { resize: vertical; min-height: 70px; line-height: 1.5; font-family: in
   font-size: 0.68rem;
   color: var(--gray-500);
   margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .library-item .lib-del {
   width: 26px; height: 26px;
@@ -287,14 +374,10 @@ textarea { resize: vertical; min-height: 70px; line-height: 1.5; font-family: in
   justify-content: center;
   flex-shrink: 0;
 }
-.library-item .lib-del:hover {
-  background: var(--danger);
-  color: white;
-}
+.library-item .lib-del:hover { background: var(--danger); color: white; }
 
 /* Chapters tree */
 .chapters-tree { display: flex; flex-direction: column; gap: 10px; }
-
 .chapter-card {
   background: white;
   border: 1.5px solid var(--gray-200);
@@ -303,10 +386,7 @@ textarea { resize: vertical; min-height: 70px; line-height: 1.5; font-family: in
   transition: var(--transition);
   animation: popIn 0.3s ease;
 }
-@keyframes popIn {
-  from { opacity: 0; transform: scale(0.96); }
-  to { opacity: 1; transform: scale(1); }
-}
+.chapter-card:hover { border-color: rgba(99,102,241,0.4); }
 
 .chapter-header {
   display: flex;
@@ -335,6 +415,7 @@ textarea { resize: vertical; min-height: 70px; line-height: 1.5; font-family: in
   font-weight: 700;
   color: #5b21b6;
   word-break: break-word;
+  min-width: 0;
 }
 .chapter-header .ch-actions { display: flex; gap: 4px; flex-shrink: 0; }
 .chapter-header .ch-actions button {
@@ -352,12 +433,7 @@ textarea { resize: vertical; min-height: 70px; line-height: 1.5; font-family: in
 .chapter-header .ch-actions button:hover { background: white; transform: scale(1.1); }
 .chapter-header .ch-actions .del-btn:hover { background: var(--danger); color: white; }
 
-.chapter-body {
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
+.chapter-body { padding: 10px; display: flex; flex-direction: column; gap: 8px; }
 .chapter-body.collapsed { display: none; }
 
 .topic-card {
@@ -377,7 +453,14 @@ textarea { resize: vertical; min-height: 70px; line-height: 1.5; font-family: in
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
 }
-.topic-card .tp-title { flex: 1; font-size: 0.82rem; font-weight: 600; color: var(--gray-700); word-break: break-word; }
+.topic-card .tp-title {
+  flex: 1;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--gray-700);
+  word-break: break-word;
+  min-width: 0;
+}
 .topic-card .tp-actions { display: flex; gap: 4px; }
 .topic-card .tp-actions button {
   width: 24px; height: 24px;
@@ -410,16 +493,12 @@ textarea { resize: vertical; min-height: 70px; line-height: 1.5; font-family: in
   justify-content: center;
   gap: 4px;
 }
-.add-btn-small:hover {
-  border-color: var(--primary);
-  color: var(--primary);
-  background: rgba(99,102,241,0.04);
-}
+.add-btn-small:hover { border-color: var(--primary); color: var(--primary); background: rgba(99,102,241,0.04); }
 
 /* Block toolbar */
 .block-toolbar {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
   gap: 5px;
   margin-bottom: 12px;
   padding-bottom: 12px;
@@ -440,12 +519,7 @@ textarea { resize: vertical; min-height: 70px; line-height: 1.5; font-family: in
   align-items: center;
   gap: 1px;
 }
-.block-btn:hover {
-  border-color: var(--primary);
-  color: var(--primary);
-  background: rgba(99,102,241,0.04);
-  transform: translateY(-2px);
-}
+.block-btn:hover { border-color: var(--primary); color: var(--primary); background: rgba(99,102,241,0.04); transform: translateY(-2px); }
 .block-btn .ic { font-size: 0.9rem; }
 
 .blocks-list { display: flex; flex-direction: column; gap: 8px; }
@@ -505,6 +579,7 @@ textarea { resize: vertical; min-height: 70px; line-height: 1.5; font-family: in
   cursor: pointer;
   font-size: 0.7rem;
   flex-shrink: 0;
+  transition: var(--transition);
 }
 .block-content .bullet-row button:hover { background: var(--danger); color: white; }
 
@@ -517,7 +592,7 @@ textarea { resize: vertical; min-height: 70px; line-height: 1.5; font-family: in
 }
 
 /* Buttons */
-.btn-primary, .btn-success, .btn-danger, .btn-print, .btn-secondary, .btn-bulk, .btn-amber {
+.btn-primary, .btn-success, .btn-danger, .btn-print, .btn-secondary, .btn-bulk {
   padding: 12px 18px;
   border: none;
   border-radius: 12px;
@@ -531,32 +606,28 @@ textarea { resize: vertical; min-height: 70px; line-height: 1.5; font-family: in
   align-items: center;
   justify-content: center;
   gap: 6px;
+  letter-spacing: 0.01em;
+  position: relative;
+  overflow: hidden;
 }
 
 .btn-primary { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; box-shadow: 0 4px 12px rgba(99,102,241,0.3); }
 .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(99,102,241,0.4); }
 
 .btn-bulk { background: linear-gradient(135deg, var(--accent), var(--accent-dark)); color: white; box-shadow: 0 4px 12px rgba(168,85,247,0.3); }
-.btn-bulk:hover { transform: translateY(-2px); }
+.btn-bulk:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(168,85,247,0.4); }
 
 .btn-success { background: linear-gradient(135deg, var(--success), var(--success-dark)); color: white; box-shadow: 0 4px 12px rgba(16,185,129,0.3); }
-.btn-success:hover { transform: translateY(-2px); }
+.btn-success:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(16,185,129,0.4); }
 
 .btn-print { background: linear-gradient(135deg, var(--info), #0284c7); color: white; box-shadow: 0 4px 12px rgba(14,165,233,0.3); }
-.btn-print:hover { transform: translateY(-2px); }
+.btn-print:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(14,165,233,0.4); }
 
 .btn-danger { background: linear-gradient(135deg, var(--danger), var(--danger-dark)); color: white; box-shadow: 0 4px 12px rgba(239,68,68,0.3); }
-.btn-danger:hover { transform: translateY(-2px); }
+.btn-danger:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(239,68,68,0.4); }
 
-.btn-secondary {
-  background: white;
-  color: var(--gray-700);
-  border: 1.5px solid var(--gray-200);
-}
+.btn-secondary { background: white; color: var(--gray-700); border: 1.5px solid var(--gray-200); }
 .btn-secondary:hover { border-color: var(--primary-light); color: var(--primary); }
-
-.btn-amber { background: linear-gradient(135deg, var(--warning), #d97706); color: white; }
-.btn-amber:hover { transform: translateY(-2px); }
 
 .add-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
 .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
@@ -580,7 +651,7 @@ textarea { resize: vertical; min-height: 70px; line-height: 1.5; font-family: in
 }
 .utility-buttons button:hover { border-color: var(--primary); color: var(--primary); background: rgba(99,102,241,0.04); }
 
-/* Toggle switch */
+/* Toggle */
 .toggle-row {
   display: flex;
   align-items: center;
@@ -620,7 +691,13 @@ textarea { resize: vertical; min-height: 70px; line-height: 1.5; font-family: in
   min-width: 0;
   height: 100%;
   overflow: hidden;
+  animation: slideInRight 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
 .preview-toolbar {
   background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(20px);
@@ -692,7 +769,7 @@ textarea { resize: vertical; min-height: 70px; line-height: 1.5; font-family: in
   width: 210mm;
   min-height: 297mm;
   background: #fff;
-  padding: 15mm 15mm 18mm 15mm;
+  padding: 12mm 12mm 15mm 12mm;
   border-radius: 4px;
   box-shadow:
     0 4px 6px rgba(0,0,0,0.04),
@@ -700,8 +777,8 @@ textarea { resize: vertical; min-height: 70px; line-height: 1.5; font-family: in
     0 30px 60px rgba(99,102,241,0.08);
   font-family: 'Times New Roman', Georgia, serif;
   color: #000;
-  line-height: 1.55;
-  font-size: 11pt;
+  line-height: 1.4;
+  font-size: 10pt;
   position: relative;
   overflow: hidden;
   display: block;
@@ -709,257 +786,306 @@ textarea { resize: vertical; min-height: 70px; line-height: 1.5; font-family: in
 }
 .a4-page.has-border {
   border: 1.5pt solid #000;
-  padding: 12mm 12mm 15mm 12mm;
+  padding: 10mm 10mm 13mm 10mm;
 }
 
-.page-content { display: block; width: 100%; }
+.page-content { display: block; width: 100%; position: relative; z-index: 1; }
 
+/* WATERMARK — FIXED to always show */
 .page-watermark {
   position: absolute;
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%) rotate(-35deg);
-  font-size: 100pt;
-  font-weight: bold;
-  color: rgba(0,0,0,0.05);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-30deg);
+  font-size: 90pt;
+  font-weight: 900;
+  color: rgba(99, 102, 241, 0.08);
+  font-family: 'Times New Roman', Georgia, serif;
   pointer-events: none;
   white-space: nowrap;
   letter-spacing: 8px;
   z-index: 0;
   text-transform: uppercase;
   user-select: none;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
 }
-.a4-page .page-content { position: relative; z-index: 1; }
 
 .page-footer {
   position: absolute;
-  bottom: 5mm;
-  left: 15mm; right: 15mm;
+  bottom: 4mm;
+  left: 12mm; right: 12mm;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 8.5pt;
+  font-size: 8pt;
   color: #555;
   border-top: 0.5pt solid #999;
   padding-top: 3px;
-  z-index: 1;
+  z-index: 2;
 }
-.a4-page.has-border .page-footer { left: 12mm; right: 12mm; }
+.a4-page.has-border .page-footer { left: 10mm; right: 10mm; }
 .page-footer .footer-left { font-style: italic; }
 .page-footer .footer-right { font-weight: bold; }
 
-/* Notes paper header */
+/* Notes header */
 .notes-header {
   text-align: center;
   border-bottom: 2pt solid #000;
-  padding-bottom: 8px;
-  margin-bottom: 12px;
+  padding-bottom: 6px;
+  margin-bottom: 10px;
+  column-span: all;
 }
 .notes-header h1 {
-  font-size: 18pt;
+  font-size: 16pt;
   font-weight: bold;
   text-transform: uppercase;
   letter-spacing: 1px;
-  margin-bottom: 3px;
+  margin-bottom: 2px;
 }
 .notes-header .chapter-line {
-  font-size: 12pt;
+  font-size: 11pt;
   font-style: italic;
-  margin-bottom: 4px;
+  margin-bottom: 3px;
 }
 .notes-header .meta-line {
   display: flex;
   justify-content: space-between;
-  font-size: 10pt;
+  font-size: 9pt;
   margin-top: 4px;
-  padding-top: 4px;
+  padding-top: 3px;
   border-top: 0.5pt dashed #666;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
 }
 .notes-header .school-label {
-  font-size: 11pt;
+  font-size: 10pt;
   color: #333;
-  margin-bottom: 4px;
+  margin-bottom: 3px;
   font-style: italic;
 }
 
-/* Notes content */
+/* ============ 2-COLUMN LAYOUT (for notes) ============ */
+/* Notes content flows in 2 columns automatically */
+.notes-content-flow {
+  column-count: 2;
+  column-gap: 8mm;
+  column-rule: 0.5pt solid #cbd5e1;
+  column-fill: auto;
+}
+
+/* When in 2-col mode, keep blocks from breaking */
+.note-chapter-heading,
+.note-topic-heading,
+.note-block,
+.note-bullets,
+.note-numbered,
+.note-definition-box,
+.note-formula-box,
+.note-important-box,
+.note-example-box,
+.note-note-box,
+.note-table,
+.note-image {
+  break-inside: avoid;
+  page-break-inside: avoid;
+  -webkit-column-break-inside: avoid;
+}
+
+/* If 2-col disabled, plain single column */
+.notes-content-flow.single-col {
+  column-count: 1;
+  column-rule: none;
+}
+
+/* Notes content blocks */
 .note-chapter-heading {
   background: linear-gradient(135deg, #1f2937, #374151);
   color: white;
-  padding: 6px 12px;
-  font-size: 12pt;
+  padding: 4px 10px;
+  font-size: 11pt;
   font-weight: bold;
   text-align: center;
   text-transform: uppercase;
-  letter-spacing: 1px;
-  margin: 14px 0 10px 0;
+  letter-spacing: 0.8px;
+  margin: 10px 0 8px 0;
   border-radius: 3px;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
 }
 .note-chapter-heading:first-child { margin-top: 0; }
 
 .note-topic-heading {
-  font-size: 13pt;
+  font-size: 11.5pt;
   font-weight: bold;
   color: #1f2937;
-  margin: 12px 0 6px 0;
-  padding: 4px 0;
+  margin: 10px 0 5px 0;
+  padding: 3px 0;
   border-bottom: 1.5pt solid var(--primary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.4px;
 }
-.note-topic-heading:first-child { margin-top: 0; }
 
-.note-block { margin-bottom: 8px; }
+.note-block { margin-bottom: 6px; }
 
 .note-heading-1 {
-  font-size: 14pt;
+  font-size: 12pt;
   font-weight: bold;
   color: #000;
-  margin: 10px 0 6px 0;
+  margin: 8px 0 4px 0;
   border-bottom: 1pt solid #333;
   padding-bottom: 2px;
 }
 .note-heading-2 {
-  font-size: 12.5pt;
+  font-size: 11pt;
   font-weight: bold;
   color: #1f2937;
-  margin: 8px 0 4px 0;
-}
-.note-heading-3 {
-  font-size: 11.5pt;
-  font-weight: bold;
-  color: #374151;
   margin: 6px 0 3px 0;
 }
-.note-paragraph {
-  font-size: 11pt;
-  line-height: 1.6;
-  text-align: justify;
-  margin-bottom: 6px;
+.note-heading-3 {
+  font-size: 10pt;
+  font-weight: bold;
+  color: #374151;
+  margin: 5px 0 2px 0;
 }
-.note-bullets { margin: 4px 0 8px 20px; padding-left: 0; }
-.note-bullets li { font-size: 11pt; margin-bottom: 3px; line-height: 1.5; list-style-type: disc; }
-.note-numbered { margin: 4px 0 8px 20px; padding-left: 0; }
-.note-numbered li { font-size: 11pt; margin-bottom: 3px; line-height: 1.5; list-style-type: decimal; }
+.note-paragraph {
+  font-size: 9.5pt;
+  line-height: 1.5;
+  text-align: justify;
+  margin-bottom: 5px;
+}
+.note-bullets { margin: 3px 0 6px 16px; padding-left: 0; }
+.note-bullets li { font-size: 9.5pt; margin-bottom: 2px; line-height: 1.4; list-style-type: disc; }
+.note-numbered { margin: 3px 0 6px 16px; padding-left: 0; }
+.note-numbered li { font-size: 9.5pt; margin-bottom: 2px; line-height: 1.4; list-style-type: decimal; }
 
-/* Special boxes */
+/* Boxes — smaller for 2-col */
 .note-definition-box {
   background: linear-gradient(135deg, #dbeafe, #eff6ff);
-  border-left: 4pt solid #3b82f6;
-  padding: 8px 12px;
-  margin: 6px 0;
+  border-left: 3pt solid #3b82f6;
+  padding: 5px 8px;
+  margin: 5px 0;
   border-radius: 3px;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
 }
 .note-definition-box .box-label {
-  font-size: 10pt; font-weight: bold;
+  font-size: 8.5pt; font-weight: bold;
   color: #1e40af;
   text-transform: uppercase;
-  margin-bottom: 3px;
+  margin-bottom: 2px;
 }
 .note-definition-box .box-text {
-  font-size: 10.5pt;
+  font-size: 9pt;
   color: #1e3a8a;
-  line-height: 1.5;
+  line-height: 1.4;
   font-style: italic;
 }
 
 .note-formula-box {
   background: linear-gradient(135deg, #f3e8ff, #ede9fe);
-  border-left: 4pt solid #8b5cf6;
-  padding: 8px 12px;
-  margin: 6px 0;
+  border-left: 3pt solid #8b5cf6;
+  padding: 5px 8px;
+  margin: 5px 0;
   border-radius: 3px;
   text-align: center;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
 }
 .note-formula-box .box-label {
-  font-size: 10pt; font-weight: bold;
+  font-size: 8.5pt; font-weight: bold;
   color: #6b21a8;
   text-transform: uppercase;
-  margin-bottom: 3px;
+  margin-bottom: 2px;
 }
 .note-formula-box .box-text {
-  font-size: 12pt;
+  font-size: 10.5pt;
   color: #5b21b6;
   font-weight: bold;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
 }
 
 .note-important-box {
   background: linear-gradient(135deg, #fef3c7, #fffbeb);
-  border-left: 4pt solid #f59e0b;
-  padding: 8px 12px;
-  margin: 6px 0;
+  border-left: 3pt solid #f59e0b;
+  padding: 5px 8px;
+  margin: 5px 0;
   border-radius: 3px;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
 }
 .note-important-box .box-label {
-  font-size: 10pt; font-weight: bold;
+  font-size: 8.5pt; font-weight: bold;
   color: #b45309;
   text-transform: uppercase;
-  margin-bottom: 3px;
+  margin-bottom: 2px;
 }
-.note-important-box .box-text { font-size: 10.5pt; color: #78350f; line-height: 1.5; }
+.note-important-box .box-text { font-size: 9pt; color: #78350f; line-height: 1.4; }
 
 .note-example-box {
   background: linear-gradient(135deg, #d1fae5, #ecfdf5);
-  border-left: 4pt solid #10b981;
-  padding: 8px 12px;
-  margin: 6px 0;
+  border-left: 3pt solid #10b981;
+  padding: 5px 8px;
+  margin: 5px 0;
   border-radius: 3px;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
 }
 .note-example-box .box-label {
-  font-size: 10pt; font-weight: bold;
+  font-size: 8.5pt; font-weight: bold;
   color: #047857;
   text-transform: uppercase;
-  margin-bottom: 3px;
+  margin-bottom: 2px;
 }
-.note-example-box .box-text { font-size: 10.5pt; color: #065f46; line-height: 1.5; }
+.note-example-box .box-text { font-size: 9pt; color: #065f46; line-height: 1.4; }
 
 .note-note-box {
   background: linear-gradient(135deg, #f3f4f6, #f9fafb);
-  border-left: 4pt solid #6b7280;
-  padding: 8px 12px;
-  margin: 6px 0;
+  border-left: 3pt solid #6b7280;
+  padding: 5px 8px;
+  margin: 5px 0;
   border-radius: 3px;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
 }
 .note-note-box .box-label {
-  font-size: 10pt; font-weight: bold;
+  font-size: 8.5pt; font-weight: bold;
   color: #4b5563;
   text-transform: uppercase;
-  margin-bottom: 3px;
+  margin-bottom: 2px;
 }
-.note-note-box .box-text { font-size: 10.5pt; color: #374151; line-height: 1.5; }
+.note-note-box .box-text { font-size: 9pt; color: #374151; line-height: 1.4; }
 
 .note-divider {
   border: none;
   border-top: 0.5pt dashed #999;
-  margin: 10px 0;
+  margin: 8px 0;
 }
 
 .note-image {
   max-width: 100%;
   height: auto;
   border-radius: 4px;
-  margin: 6px auto;
+  margin: 5px auto;
   display: block;
-  page-break-inside: avoid;
 }
 
 .note-table {
   width: 100%;
   border-collapse: collapse;
-  margin: 8px 0;
-  font-size: 10pt;
-  page-break-inside: avoid;
+  margin: 6px 0;
+  font-size: 9pt;
 }
 .note-table th, .note-table td {
   border: 0.5pt solid #666;
-  padding: 4px 8px;
+  padding: 3px 6px;
   text-align: left;
 }
 .note-table th {
   background: #f3f4f6;
   font-weight: bold;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
 }
 
 .empty-state {
@@ -967,33 +1093,20 @@ textarea { resize: vertical; min-height: 70px; line-height: 1.5; font-family: in
   color: #9ca3af;
   font-style: italic;
   padding: 40px 20px;
+  font-size: 11pt;
 }
 
-/* Search bar */
-.search-bar {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 10px;
-}
+.search-bar { display: flex; gap: 6px; margin-bottom: 10px; }
 .search-bar input { flex: 1; font-size: 0.8rem; padding: 8px 10px; }
-.search-bar button {
-  padding: 0 12px;
-  border: none;
-  background: var(--primary);
-  color: white;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 700;
-  font-size: 0.8rem;
-}
 
-/* ============ MODALS ============ */
+/* ============ MODALS — CENTERED ============ */
 .modal-overlay {
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.5);
+  background: rgba(15, 23, 42, 0.55);
   backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   z-index: 1000;
   justify-content: center;
   align-items: center;
@@ -1008,13 +1121,15 @@ textarea { resize: vertical; min-height: 70px; line-height: 1.5; font-family: in
   border-radius: 20px;
   width: 100%;
   max-width: 500px;
-  max-height: 92vh;
+  max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.25);
   animation: modalSlideUp 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
   margin: auto;
+  position: relative;
 }
 .modal.modal-lg { max-width: 720px; }
+
 @keyframes modalSlideUp {
   from { opacity: 0; transform: translateY(30px) scale(0.96); }
   to { opacity: 1; transform: translateY(0) scale(1); }
@@ -1076,7 +1191,6 @@ textarea { resize: vertical; min-height: 70px; line-height: 1.5; font-family: in
 }
 .modal-footer button { width: auto; padding: 10px 22px; }
 
-/* Bulk textarea */
 #bulkTextarea {
   font-family: 'Consolas', monospace;
   font-size: 0.78rem;
@@ -1125,7 +1239,6 @@ textarea { resize: vertical; min-height: 70px; line-height: 1.5; font-family: in
   border: 1px solid #a7f3d0;
 }
 
-/* Symbol grid */
 .symbol-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
@@ -1143,18 +1256,9 @@ textarea { resize: vertical; min-height: 70px; line-height: 1.5; font-family: in
   text-align: center;
   font-family: 'Times New Roman', serif;
 }
-.symbol-btn:hover {
-  border-color: var(--primary);
-  background: linear-gradient(135deg, #eef2ff, #e0e7ff);
-  transform: scale(1.1);
-}
+.symbol-btn:hover { border-color: var(--primary); background: linear-gradient(135deg, #eef2ff, #e0e7ff); transform: scale(1.1); }
 
-/* Templates */
-.template-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
+.template-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .template-card {
   padding: 14px;
   background: white;
@@ -1174,107 +1278,252 @@ textarea { resize: vertical; min-height: 70px; line-height: 1.5; font-family: in
 .template-card .tpl-title { font-size: 0.82rem; font-weight: 700; color: var(--gray-800); }
 .template-card .tpl-desc { font-size: 0.68rem; color: var(--gray-500); margin-top: 4px; }
 
-/* ============ RESPONSIVE ============ */
+/* ===================================================== */
+/* ============ RESPONSIVE / MOBILE =================== */
+/* ===================================================== */
+
 @media (max-width: 1100px) {
   .app {
     grid-template-columns: 1fr;
-    grid-template-rows: 45vh 1fr;
+    grid-template-rows: 42vh 1fr;
     padding: 12px;
     gap: 12px;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
   }
-  .editor-panel { padding: 16px; border-radius: 16px; }
+  .editor-panel {
+    height: 100%;
+    max-height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 16px;
+    border-radius: 16px;
+  }
   .panel-header {
+    top: -16px;
     margin-left: -16px;
     margin-right: -16px;
     margin-top: -16px;
-    padding: 16px;
-    padding-bottom: 14px;
+    padding: 16px 16px 18px 16px;
+    border-radius: 16px 16px 0 0;
   }
-  .panel-header::after { left: 16px; }
-  .paper-scroll-area { padding: 10px; }
+  .panel-header::before { left: 16px; right: 16px; bottom: 6px; }
+  .panel-header::after { left: 16px; bottom: 5px; }
+  .preview-panel { height: 100%; overflow: hidden; }
+  .paper-scroll-area {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: auto;
+    padding: 10px;
+  }
 }
 
 @media (max-width: 768px) {
-  .app { grid-template-rows: 42vh 1fr; padding: 8px; gap: 10px; }
+  .app {
+    grid-template-columns: 1fr;
+    grid-template-rows: 40vh 1fr;
+    padding: 8px;
+    gap: 10px;
+  }
   .editor-panel { padding: 14px; border-radius: 14px; }
   .panel-header {
+    top: -14px;
     margin-left: -14px;
     margin-right: -14px;
     margin-top: -14px;
-    padding: 14px;
-    padding-bottom: 12px;
+    padding: 14px 14px 16px 14px;
+    border-radius: 14px 14px 0 0;
   }
-  .panel-header::after { left: 14px; }
+  .panel-header::before { left: 14px; right: 14px; bottom: 6px; }
+  .panel-header::after { left: 14px; bottom: 5px; }
   .panel-header .header-text h1 { font-size: 1rem; }
+  .panel-header .header-text p { font-size: 0.72rem; }
   .panel-header .logo { width: 38px; height: 38px; font-size: 18px; }
 
-  .preview-toolbar { padding: 10px 14px; font-size: 0.82rem; }
-  .paper-scroll-area { padding: 8px 0; }
-  .paper-wrapper { display: block; width: 100%; min-width: 0; text-align: center; font-size: 0; padding: 0; }
+  .preview-toolbar {
+    padding: 10px 14px;
+    font-size: 0.82rem;
+    border-radius: 12px;
+    flex-shrink: 0;
+  }
+
+  .paper-scroll-area {
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: 8px 0;
+    -webkit-overflow-scrolling: touch;
+    box-sizing: border-box;
+    text-align: center;
+    position: relative;
+    border-radius: 12px;
+  }
+
+  .paper-wrapper {
+    display: block;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+    min-width: 0;
+    position: relative;
+    text-align: center;
+    font-size: 0;
+  }
+
   .a4-page {
     display: inline-block;
-    font-size: 11pt;
+    font-size: 10pt;
     vertical-align: top;
     text-align: left;
     transform: scale(0.48);
     transform-origin: top center;
     margin: 0 0 -155mm 0;
+    box-shadow: 0 4px 20px rgba(99,102,241,0.15);
+    flex-shrink: 0;
   }
-  .template-grid { grid-template-columns: 1fr; }
+
+  .modal { max-width: 100%; border-radius: 16px; }
+  .modal-header { border-radius: 16px 16px 0 0; }
+  .modal-footer { border-radius: 0 0 16px 16px; }
 }
 
 @media (max-width: 480px) {
-  .app { grid-template-rows: 40vh 1fr; padding: 6px; gap: 8px; }
+  .app { padding: 6px; gap: 8px; grid-template-rows: 38vh 1fr; }
   .editor-panel { padding: 12px; border-radius: 12px; }
   .panel-header {
+    top: -12px;
     margin-left: -12px;
     margin-right: -12px;
     margin-top: -12px;
-    padding: 12px;
-    padding-bottom: 10px;
+    padding: 12px 12px 14px 12px;
+    border-radius: 12px 12px 0 0;
   }
-  .panel-header::after { left: 12px; }
+  .panel-header::before { left: 12px; right: 12px; bottom: 5px; }
+  .panel-header::after { left: 12px; bottom: 4px; }
+  .panel-header .header-text h1 { font-size: 0.95rem; }
+  .panel-header .header-text p { font-size: 0.68rem; }
+  .panel-header .logo { width: 34px; height: 34px; font-size: 16px; }
 
-  .a4-page { transform: scale(0.42); margin: 0 0 -172mm 0; }
-  .actions { grid-template-columns: 1fr; }
+  .preview-toolbar {
+    padding: 8px 12px;
+    font-size: 0.78rem;
+    border-radius: 10px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .paper-scroll-area { padding: 6px 0; border-radius: 10px; }
+
+  .a4-page {
+    display: inline-block;
+    vertical-align: top;
+    text-align: left;
+    transform: scale(0.42);
+    transform-origin: top center;
+    margin: 0 0 -172mm 0;
+  }
+
+  .add-buttons, .actions { grid-template-columns: 1fr; }
   .actions .btn-danger { grid-column: span 1; }
-  .add-buttons { grid-template-columns: 1fr; }
   .utility-buttons { grid-template-columns: repeat(2, 1fr); }
+  .template-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 380px) {
-  .a4-page { transform: scale(0.36); margin: 0 0 -190mm 0; }
+  .app { grid-template-rows: 36vh 1fr; }
+  .a4-page {
+    transform: scale(0.36);
+    transform-origin: top center;
+    margin: 0 0 -190mm 0;
+  }
 }
 
 /* ============ PRINT ============ */
 @media print {
-  html, body { overflow: visible !important; height: auto !important; position: static !important; background: #fff; }
+  html, body {
+    overflow: visible !important;
+    height: auto !important;
+    position: static !important;
+    background: #fff;
+  }
   body::before, body::after { display: none; }
-  .app { display: block !important; padding: 0 !important; margin: 0 !important; gap: 0 !important; height: auto !important; overflow: visible !important; }
-  .editor-panel, .preview-toolbar { display: none !important; }
-  .preview-panel { display: block !important; padding: 0 !important; margin: 0 !important; height: auto !important; overflow: visible !important; }
+  .app {
+    display: block !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    height: auto !important;
+    overflow: visible !important;
+    grid-template-columns: none !important;
+    grid-template-rows: none !important;
+  }
+  .editor-panel, .preview-toolbar, .loading-overlay { display: none !important; }
+  .preview-panel {
+    display: block !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
   .paper-scroll-area {
-    display: block !important; overflow: visible !important; height: auto !important;
-    padding: 0 !important; margin: 0 !important; background: transparent !important;
-    border: none !important; box-shadow: none !important; max-height: none !important;
-    text-align: left !important; border-radius: 0 !important;
+    display: block !important;
+    overflow: visible !important;
+    height: auto !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    max-height: none !important;
+    text-align: left !important;
+    border-radius: 0 !important;
+    flex: none !important;
   }
   .paper-wrapper {
-    display: block !important; width: auto !important; min-width: auto !important;
-    padding: 0 !important; margin: 0 !important; text-align: left !important; font-size: 11pt !important;
+    display: block !important;
+    width: auto !important;
+    min-width: auto !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    text-align: left !important;
+    font-size: 10pt !important;
   }
   .a4-page {
-    box-shadow: none !important; margin: 0 !important; border-radius: 0 !important;
-    display: block !important; transform: none !important;
-    page-break-after: always; break-after: page;
-    width: 210mm !important; min-height: 297mm !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    display: block !important;
+    transform: none !important;
+    transform-origin: initial !important;
+    page-break-after: always;
+    break-after: page;
+    width: 210mm !important;
+    min-height: 297mm !important;
   }
   .a4-page:last-child { page-break-after: avoid; break-after: avoid; }
+  .page-watermark {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color: rgba(99, 102, 241, 0.08) !important;
+  }
   @page { size: A4; margin: 0; }
 }
 </style>
 </head>
 <body>
+
+<!-- ============ LOADING OVERLAY ============ -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-box">
+    <div class="loading-spinner"></div>
+    <div class="loading-text" id="loadingText">Please wait...</div>
+    <div class="loading-subtext" id="loadingSubtext">Processing your request</div>
+  </div>
+</div>
 
 <div class="app">
   <aside class="editor-panel">
@@ -1286,7 +1535,6 @@ textarea { resize: vertical; min-height: 70px; line-height: 1.5; font-family: in
       </div>
     </div>
 
-    <!-- Library -->
     <section class="section collapsible">
       <h2 class="collapsible-header">📚 My Notes Library</h2>
       <div class="collapsible-body">
@@ -1298,7 +1546,6 @@ textarea { resize: vertical; min-height: 70px; line-height: 1.5; font-family: in
       </div>
     </section>
 
-    <!-- Notes Details -->
     <section class="section collapsible collapsed">
       <h2 class="collapsible-header">📋 Notes Details</h2>
       <div class="form-grid collapsible-body">
@@ -1323,7 +1570,6 @@ textarea { resize: vertical; min-height: 70px; line-height: 1.5; font-family: in
       </div>
     </section>
 
-    <!-- Chapters -->
     <section class="section collapsible">
       <h2 class="collapsible-header">📖 Chapters & Topics</h2>
       <div class="collapsible-body">
@@ -1337,11 +1583,10 @@ textarea { resize: vertical; min-height: 70px; line-height: 1.5; font-family: in
       </div>
     </section>
 
-    <!-- Content Editor -->
     <section class="section" id="contentEditorSection" style="display: none;">
       <h2 style="margin-bottom: 12px;">✏️ Content Editor</h2>
       <div id="contentEditorInfo" style="font-size: 0.78rem; color: var(--gray-500); margin-bottom: 10px; padding: 8px 10px; background: linear-gradient(135deg, #eef2ff, #e0e7ff); border-radius: 8px; font-weight: 600;"></div>
-      
+
       <div class="block-toolbar" id="blockToolbar">
         <button class="block-btn" data-type="h1"><span class="ic">H1</span>Heading</button>
         <button class="block-btn" data-type="h2"><span class="ic">H2</span>Sub-head</button>
@@ -1363,10 +1608,13 @@ textarea { resize: vertical; min-height: 70px; line-height: 1.5; font-family: in
       <div class="blocks-list" id="blocksList"></div>
     </section>
 
-    <!-- Design -->
     <section class="section collapsible collapsed">
       <h2 class="collapsible-header">🎨 Design Options</h2>
       <div class="collapsible-body">
+        <div class="toggle-row">
+          <span>2-Column Layout</span>
+          <div class="toggle-switch active" id="twoColToggle"></div>
+        </div>
         <div class="toggle-row">
           <span>Outer Border</span>
           <div class="toggle-switch" id="borderToggle"></div>
@@ -1384,7 +1632,6 @@ textarea { resize: vertical; min-height: 70px; line-height: 1.5; font-family: in
       </div>
     </section>
 
-    <!-- Import/Export -->
     <section class="section collapsible collapsed">
       <h2 class="collapsible-header">🔄 Import / Export</h2>
       <div class="collapsible-body">
@@ -1398,7 +1645,6 @@ textarea { resize: vertical; min-height: 70px; line-height: 1.5; font-family: in
       </div>
     </section>
 
-    <!-- Actions -->
     <div class="actions">
       <button class="btn-success" id="downloadBtn">⬇️ Download PDF</button>
       <button class="btn-print" id="printBtn">🖨️ Print</button>
@@ -1420,7 +1666,7 @@ textarea { resize: vertical; min-height: 70px; line-height: 1.5; font-family: in
   </main>
 </div>
 
-<!-- Modal: Chapter -->
+<!-- Modals -->
 <div class="modal-overlay" id="chapterModal">
   <div class="modal">
     <div class="modal-header">
@@ -1439,7 +1685,6 @@ textarea { resize: vertical; min-height: 70px; line-height: 1.5; font-family: in
   </div>
 </div>
 
-<!-- Modal: Topic -->
 <div class="modal-overlay" id="topicModal">
   <div class="modal">
     <div class="modal-header">
@@ -1458,7 +1703,6 @@ textarea { resize: vertical; min-height: 70px; line-height: 1.5; font-family: in
   </div>
 </div>
 
-<!-- Modal: Bulk Import -->
 <div class="modal-overlay" id="bulkModal">
   <div class="modal modal-lg">
     <div class="modal-header">
@@ -1467,7 +1711,7 @@ textarea { resize: vertical; min-height: 70px; line-height: 1.5; font-family: in
     </div>
     <div class="modal-body">
       <div class="bulk-help">
-        <strong>Format (text paste करो):</strong>
+        <strong>Format:</strong>
         <pre># Chapter 1: Motion
 ## What is Motion?
 Motion is the change in position...
@@ -1483,20 +1727,8 @@ Motion is the change in position...
 1. First step
 2. Second step
 
-# Chapter 2: Force
-## Newton's Laws
-...</pre>
-        <strong>Symbols:</strong>
-        <code>#</code> Chapter &nbsp;
-        <code>##</code> Topic &nbsp;
-        <code>###</code> Sub-heading<br>
-        <code>!def</code> Definition &nbsp;
-        <code>!formula</code> Formula &nbsp;
-        <code>!imp</code> Important<br>
-        <code>!ex</code> Example &nbsp;
-        <code>!note</code> Note &nbsp;
-        <code>-</code> Bullet &nbsp;
-        <code>1.</code> Numbered
+# Chapter 2: Force</pre>
+        <strong>Symbols:</strong> <code>#</code> Chapter &nbsp; <code>##</code> Topic &nbsp; <code>!def</code> Def &nbsp; <code>!formula</code> Formula &nbsp; <code>!imp</code> Important &nbsp; <code>!ex</code> Example &nbsp; <code>!note</code> Note
       </div>
       <label>Paste notes here
         <textarea id="bulkTextarea" placeholder="Paste your notes here..."></textarea>
@@ -1510,7 +1742,6 @@ Motion is the change in position...
   </div>
 </div>
 
-<!-- Modal: Symbols -->
 <div class="modal-overlay" id="symbolsModal">
   <div class="modal">
     <div class="modal-header">
@@ -1526,7 +1757,6 @@ Motion is the change in position...
   </div>
 </div>
 
-<!-- Modal: Templates -->
 <div class="modal-overlay" id="templatesModal">
   <div class="modal modal-lg">
     <div class="modal-header">
@@ -1539,7 +1769,6 @@ Motion is the change in position...
   </div>
 </div>
 
-<!-- Modal: Library Name -->
 <div class="modal-overlay" id="libraryNameModal">
   <div class="modal">
     <div class="modal-header">
@@ -1558,13 +1787,12 @@ Motion is the change in position...
   </div>
 </div>
 
-<!-- Hidden file input -->
 <input type="file" id="jsonFileInput" accept=".json" style="display:none;">
 <input type="file" id="imageFileInput" accept="image/*" style="display:none;">
 
 <script>
 /* ================= STATE ================= */
-let library = []; // [{ id, title, createdAt, data: { header, chapters, options } }]
+let library = [];
 let activeNotesId = null;
 let activeTopicId = null;
 let activeChapterId = null;
@@ -1577,6 +1805,10 @@ let searchQuery = '';
 const $ = (id) => document.getElementById(id);
 
 /* DOM refs */
+const loadingOverlay = $('loadingOverlay');
+const loadingText = $('loadingText');
+const loadingSubtext = $('loadingSubtext');
+
 const subjectName = $('subjectName');
 const chapterName = $('chapterName');
 const className = $('className');
@@ -1597,6 +1829,7 @@ const contentEditorInfo = $('contentEditorInfo');
 const blockToolbar = $('blockToolbar');
 const blocksList = $('blocksList');
 
+const twoColToggle = $('twoColToggle');
 const borderToggle = $('borderToggle');
 const watermarkToggle = $('watermarkToggle');
 const watermarkText = $('watermarkText');
@@ -1655,6 +1888,28 @@ const libraryNameInput = $('libraryNameInput');
 const jsonFileInput = $('jsonFileInput');
 const imageFileInput = $('imageFileInput');
 
+/* ================= LOADING HELPERS ================= */
+function showLoading(text, subtext) {
+  loadingText.textContent = text || 'Please wait...';
+  loadingSubtext.textContent = subtext || 'Processing your request';
+  loadingOverlay.classList.add('active');
+}
+
+function hideLoading() {
+  loadingOverlay.classList.remove('active');
+}
+
+function withLoading(text, subtext, fn) {
+  showLoading(text, subtext);
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      try { fn(); } catch(e) { console.error(e); }
+      hideLoading();
+      resolve();
+    }, 250);
+  });
+}
+
 /* ================= HELPERS ================= */
 function getActiveNotes() {
   return library.find(n => n.id === activeNotesId);
@@ -1676,7 +1931,7 @@ document.querySelectorAll('.collapsible-header').forEach(header => {
   });
 });
 
-/* ================= HEADER LISTENERS ================= */
+/* ================= HEADER ================= */
 [subjectName, chapterName, className, teacherName, schoolName, dateField]
   .forEach(el => el.addEventListener('input', () => {
     const notes = getActiveNotes();
@@ -1687,6 +1942,14 @@ document.querySelectorAll('.collapsible-header').forEach(header => {
   }));
 
 /* ================= TOGGLES ================= */
+twoColToggle.addEventListener('click', () => {
+  const notes = getActiveNotes();
+  if (!notes) return;
+  notes.data.options.twoColEnabled = !notes.data.options.twoColEnabled;
+  twoColToggle.classList.toggle('active', notes.data.options.twoColEnabled);
+  renderPaper(); saveData();
+});
+
 borderToggle.addEventListener('click', () => {
   const notes = getActiveNotes();
   if (!notes) return;
@@ -1694,6 +1957,7 @@ borderToggle.addEventListener('click', () => {
   borderToggle.classList.toggle('active', notes.data.options.borderEnabled);
   renderPaper(); saveData();
 });
+
 watermarkToggle.addEventListener('click', () => {
   const notes = getActiveNotes();
   if (!notes) return;
@@ -1701,6 +1965,7 @@ watermarkToggle.addEventListener('click', () => {
   watermarkToggle.classList.toggle('active', notes.data.options.watermarkEnabled);
   renderPaper(); saveData();
 });
+
 watermarkText.addEventListener('input', () => {
   const notes = getActiveNotes();
   if (!notes) return;
@@ -1715,22 +1980,17 @@ searchInput.addEventListener('input', () => {
 });
 
 /* ================= LOCALSTORAGE ================= */
-const STORAGE_KEY = 'notesMakerPRO_v1';
+const STORAGE_KEY = 'notesMakerPRO_v3';
 
 function saveData() {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      library,
-      activeNotesId,
-      idCounter
-    }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ library, activeNotesId, idCounter }));
   } catch(e) {}
 }
 
 function loadData() {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) {
-    // Create default notes
     createNewNotes('My First Notes', false);
     return;
   }
@@ -1743,10 +2003,16 @@ function loadData() {
       activeNotesId = library[0].id;
     }
     if (typeof data.idCounter === 'number') idCounter = data.idCounter;
+
+    // Ensure defaults for options
+    library.forEach(n => {
+      if (!n.data.options) n.data.options = {};
+      if (n.data.options.twoColEnabled === undefined) n.data.options.twoColEnabled = true;
+    });
   } catch(e) { console.error(e); }
 }
 
-/* ================= CREATE / DELETE NOTES ================= */
+/* ================= CREATE NOTES ================= */
 function createNewNotes(title, shouldOpenModal = true) {
   const newId = 'notes_' + (idCounter++);
   const newNotes = {
@@ -1756,14 +2022,14 @@ function createNewNotes(title, shouldOpenModal = true) {
     data: {
       header: { subjectName: '', chapterName: '', className: '', teacherName: '', schoolName: '', dateField: '' },
       chapters: [],
-      options: { borderEnabled: false, watermarkEnabled: false, watermarkText: 'NOTES' }
+      options: { twoColEnabled: true, borderEnabled: false, watermarkEnabled: false, watermarkText: 'NOTES' }
     }
   };
   library.push(newNotes);
   activeNotesId = newId;
   activeTopicId = null;
   activeChapterId = null;
-  
+
   if (!shouldOpenModal) {
     syncUIWithActiveNotes();
     renderLibrary();
@@ -1777,8 +2043,7 @@ function createNewNotes(title, shouldOpenModal = true) {
 function syncUIWithActiveNotes() {
   const notes = getActiveNotes();
   if (!notes) return;
-  
-  // Header fields
+
   const h = notes.data.header;
   subjectName.value = h.subjectName || '';
   chapterName.value = h.chapterName || '';
@@ -1787,18 +2052,14 @@ function syncUIWithActiveNotes() {
   schoolName.value = h.schoolName || '';
   dateField.value = h.dateField || '';
 
-  // Design options
   const o = notes.data.options;
+  twoColToggle.classList.toggle('active', o.twoColEnabled !== false);
   borderToggle.classList.toggle('active', o.borderEnabled);
   watermarkToggle.classList.toggle('active', o.watermarkEnabled);
   watermarkText.value = o.watermarkText || 'NOTES';
 
-  // Content editor
-  if (activeTopicId) {
-    renderContentEditor();
-  } else {
-    contentEditorSection.style.display = 'none';
-  }
+  if (activeTopicId) renderContentEditor();
+  else contentEditorSection.style.display = 'none';
 }
 
 newNotesBtn.addEventListener('click', () => {
@@ -1820,8 +2081,10 @@ libraryNameInput.addEventListener('keypress', (e) => {
 saveLibraryNameBtn.addEventListener('click', () => {
   const title = libraryNameInput.value.trim();
   if (!title) { alert('Please enter a title!'); return; }
-  createNewNotes(title, false);
-  libraryNameModal.classList.remove('active');
+  withLoading('Creating notes...', 'Setting up new notes', () => {
+    createNewNotes(title, false);
+    libraryNameModal.classList.remove('active');
+  });
 });
 
 /* ================= RENDER LIBRARY ================= */
@@ -1839,7 +2102,7 @@ function renderLibrary() {
         <div class="lib-icon">📗</div>
         <div class="lib-info">
           <div class="lib-title">${escapeHtml(n.title)}</div>
-          <div class="lib-meta">${escapeHtml(subj)} · ${chCount} chapters · ${tpCount} topics</div>
+          <div class="lib-meta">${escapeHtml(subj)} · ${chCount} ch · ${tpCount} topics</div>
         </div>
         <button class="lib-del" data-del-notes="${n.id}" title="Delete">🗑️</button>
       </div>
@@ -1849,8 +2112,7 @@ function renderLibrary() {
   libraryList.querySelectorAll('[data-notes-id]').forEach(el => {
     el.addEventListener('click', (e) => {
       if (e.target.closest('[data-del-notes]')) return;
-      const id = el.getAttribute('data-notes-id');
-      switchNotes(id);
+      withLoading('Loading notes...', 'Please wait', () => switchNotes(el.getAttribute('data-notes-id')));
     });
   });
 
@@ -1860,22 +2122,18 @@ function renderLibrary() {
       const id = btn.getAttribute('data-del-notes');
       const n = library.find(x => x.id === id);
       if (!n) return;
-      if (library.length === 1) {
-        alert('Cannot delete the last notes. Create a new one first.');
-        return;
-      }
+      if (library.length === 1) { alert('Cannot delete the last notes.'); return; }
       if (!confirm(`Delete "${n.title}"?`)) return;
-      library = library.filter(x => x.id !== id);
-      if (activeNotesId === id) {
-        activeNotesId = library[0].id;
-        activeTopicId = null;
-        activeChapterId = null;
-      }
-      syncUIWithActiveNotes();
-      renderLibrary();
-      renderChaptersTree();
-      renderPaper();
-      saveData();
+      withLoading('Deleting notes...', 'Please wait', () => {
+        library = library.filter(x => x.id !== id);
+        if (activeNotesId === id) {
+          activeNotesId = library[0].id;
+          activeTopicId = null;
+          activeChapterId = null;
+        }
+        syncUIWithActiveNotes();
+        renderLibrary(); renderChaptersTree(); renderPaper(); saveData();
+      });
     });
   });
 }
@@ -1885,26 +2143,19 @@ function switchNotes(id) {
   activeTopicId = null;
   activeChapterId = null;
   syncUIWithActiveNotes();
-  renderLibrary();
-  renderChaptersTree();
-  renderPaper();
-  saveData();
+  renderLibrary(); renderChaptersTree(); renderPaper(); saveData();
 }
 
 /* ================= RENDER CHAPTERS ================= */
 function renderChaptersTree() {
   const notes = getActiveNotes();
-  if (!notes) {
-    chaptersTree.innerHTML = '';
-    return;
-  }
+  if (!notes) { chaptersTree.innerHTML = ''; return; }
 
   let chapters = notes.data.chapters;
 
-  // Filter by search
   if (searchQuery) {
     chapters = chapters.map(ch => {
-      const filteredTopics = ch.topics.filter(tp => 
+      const filteredTopics = ch.topics.filter(tp =>
         tp.title.toLowerCase().includes(searchQuery) ||
         ch.title.toLowerCase().includes(searchQuery)
       );
@@ -1922,7 +2173,7 @@ function renderChaptersTree() {
     return;
   }
 
-  chaptersTree.innerHTML = chapters.map((ch, chIdx) => {
+  chaptersTree.innerHTML = chapters.map((ch) => {
     const originalIdx = notes.data.chapters.findIndex(c => c.id === ch.id);
     return `
     <div class="chapter-card" data-ch-id="${ch.id}">
@@ -1986,14 +2237,16 @@ function attachChapterHandlers() {
       const chId = el.getAttribute('data-del-ch');
       const ch = notes.data.chapters.find(c => c.id === chId);
       if (!ch) return;
-      if (!confirm(`Delete "${ch.title}" and all its topics?`)) return;
-      notes.data.chapters = notes.data.chapters.filter(c => c.id !== chId);
-      if (activeChapterId === chId) {
-        activeTopicId = null;
-        activeChapterId = null;
-        contentEditorSection.style.display = 'none';
-      }
-      renderChaptersTree(); renderPaper(); saveData();
+      if (!confirm(`Delete "${ch.title}"?`)) return;
+      withLoading('Deleting chapter...', 'Please wait', () => {
+        notes.data.chapters = notes.data.chapters.filter(c => c.id !== chId);
+        if (activeChapterId === chId) {
+          activeTopicId = null;
+          activeChapterId = null;
+          contentEditorSection.style.display = 'none';
+        }
+        renderChaptersTree(); renderPaper(); saveData();
+      });
     });
   });
 
@@ -2024,12 +2277,14 @@ function attachChapterHandlers() {
       const tp = ch.topics.find(t => t.id === tpId);
       if (!tp) return;
       if (!confirm(`Delete topic "${tp.title}"?`)) return;
-      ch.topics = ch.topics.filter(t => t.id !== tpId);
-      if (activeTopicId === tpId) {
-        activeTopicId = null;
-        contentEditorSection.style.display = 'none';
-      }
-      renderChaptersTree(); renderPaper(); saveData();
+      withLoading('Deleting topic...', 'Please wait', () => {
+        ch.topics = ch.topics.filter(t => t.id !== tpId);
+        if (activeTopicId === tpId) {
+          activeTopicId = null;
+          contentEditorSection.style.display = 'none';
+        }
+        renderChaptersTree(); renderPaper(); saveData();
+      });
     });
   });
 
@@ -2038,9 +2293,7 @@ function attachChapterHandlers() {
       if (e.target.closest('button')) return;
       activeTopicId = el.getAttribute('data-tp-id');
       activeChapterId = el.getAttribute('data-ch-id');
-      renderChaptersTree();
-      renderContentEditor();
-      saveData();
+      renderChaptersTree(); renderContentEditor(); saveData();
     });
   });
 }
@@ -2068,20 +2321,16 @@ saveChapterBtn.addEventListener('click', () => {
   if (!title) { alert('Please enter chapter title!'); return; }
   const notes = getActiveNotes();
   if (!notes) return;
-
-  if (editingChapterId) {
-    const ch = notes.data.chapters.find(c => c.id === editingChapterId);
-    if (ch) ch.title = title;
-  } else {
+  withLoading('Adding chapter...', 'Please wait', () => {
     notes.data.chapters.push({
       id: 'ch_' + (idCounter++),
       title: title,
       collapsed: false,
       topics: []
     });
-  }
-  chapterModal.classList.remove('active');
-  renderChaptersTree(); renderPaper(); saveData();
+    chapterModal.classList.remove('active');
+    renderChaptersTree(); renderPaper(); saveData();
+  });
 });
 
 /* ================= TOPIC MODAL ================= */
@@ -2103,26 +2352,25 @@ saveTopicBtn.addEventListener('click', () => {
   const ch = notes.data.chapters.find(c => c.id === editingChapterParentId);
   if (!ch) { alert('Chapter not found!'); topicModal.classList.remove('active'); return; }
 
-  if (editingTopicId) {
-    const tp = ch.topics.find(t => t.id === editingTopicId);
-    if (tp) tp.title = title;
-  } else {
-    const newTopic = { id: 'tp_' + (idCounter++), title: title, blocks: [] };
-    ch.topics.push(newTopic);
-    activeTopicId = newTopic.id;
-    activeChapterId = ch.id;
-  }
-  topicModal.classList.remove('active');
-  renderChaptersTree(); renderContentEditor(); renderPaper(); saveData();
+  withLoading('Saving topic...', 'Please wait', () => {
+    if (editingTopicId) {
+      const tp = ch.topics.find(t => t.id === editingTopicId);
+      if (tp) tp.title = title;
+    } else {
+      const newTopic = { id: 'tp_' + (idCounter++), title: title, blocks: [] };
+      ch.topics.push(newTopic);
+      activeTopicId = newTopic.id;
+      activeChapterId = ch.id;
+    }
+    topicModal.classList.remove('active');
+    renderChaptersTree(); renderContentEditor(); renderPaper(); saveData();
+  });
 });
 
 /* ================= CONTENT EDITOR ================= */
 function renderContentEditor() {
   const active = getActiveTopic();
-  if (!active) {
-    contentEditorSection.style.display = 'none';
-    return;
-  }
+  if (!active) { contentEditorSection.style.display = 'none'; return; }
   contentEditorSection.style.display = 'block';
   contentEditorInfo.textContent = `📝 ${active.chapter.title} → ${active.topic.title}`;
   renderBlocksList(active.topic);
@@ -2133,7 +2381,6 @@ function renderBlocksList(topic) {
     blocksList.innerHTML = '<p style="font-size:0.78rem;color:#9ca3af;text-align:center;padding:12px;background:#f9fafb;border-radius:8px;">No content yet. Click buttons above to add content.</p>';
     return;
   }
-
   blocksList.innerHTML = topic.blocks.map((b, i) => renderBlockHTML(b, i)).join('');
   attachBlockHandlers(topic);
 }
@@ -2159,9 +2406,7 @@ function renderBlockHTML(b, idx) {
       ${b.content ? `<img src="${escapeHtml(b.content)}" class="img-preview" alt="Preview">` : ''}
     `;
   } else if (b.type === 'table') {
-    content = `
-      <textarea data-block-content="${idx}" rows="4" placeholder="Row1Col1 | Row1Col2&#10;Row2Col1 | Row2Col2">${escapeHtml(b.content || '')}</textarea>
-    `;
+    content = `<textarea data-block-content="${idx}" rows="4" placeholder="Row1Col1 | Row1Col2&#10;Row2Col1 | Row2Col2">${escapeHtml(b.content || '')}</textarea>`;
   } else if (b.type === 'bullets' || b.type === 'numbered') {
     const items = b.items && b.items.length ? b.items : [''];
     content = items.map((item, iIdx) => `
@@ -2180,31 +2425,19 @@ function renderBlockHTML(b, idx) {
 }
 
 function getBlockIcon(type) {
-  const icons = {
-    h1: '📌', h2: '▪️', h3: '▫️', paragraph: '¶',
-    bullets: '•', numbered: '1.', definition: '📖',
-    formula: '🧮', important: '⚠️', example: '📝',
-    note: '💡', divider: '—', image: '🖼️', table: '📊', symbols: '∑'
-  };
+  const icons = { h1: '📌', h2: '▪️', h3: '▫️', paragraph: '¶', bullets: '•', numbered: '1.', definition: '📖', formula: '🧮', important: '⚠️', example: '📝', note: '💡', divider: '—', image: '🖼️', table: '📊', symbols: '∑' };
   return icons[type] || '•';
 }
 
 function getBlockLabel(type) {
-  const labels = {
-    h1: 'Heading', h2: 'Sub-heading', h3: 'Sub-sub-heading',
-    paragraph: 'Paragraph', bullets: 'Bullet List', numbered: 'Numbered List',
-    definition: 'Definition', formula: 'Formula', important: 'Important',
-    example: 'Example', note: 'Note', divider: 'Divider',
-    image: 'Image', table: 'Table', symbols: 'Symbols'
-  };
+  const labels = { h1: 'Heading', h2: 'Sub-heading', h3: 'Sub-sub-heading', paragraph: 'Paragraph', bullets: 'Bullet List', numbered: 'Numbered List', definition: 'Definition', formula: 'Formula', important: 'Important', example: 'Example', note: 'Note', divider: 'Divider', image: 'Image', table: 'Table', symbols: 'Symbols' };
   return labels[type] || type;
 }
 
 function attachBlockHandlers(topic) {
   blocksList.querySelectorAll('[data-del-block]').forEach(el => {
     el.addEventListener('click', () => {
-      const idx = parseInt(el.getAttribute('data-del-block'));
-      topic.blocks.splice(idx, 1);
+      topic.blocks.splice(parseInt(el.getAttribute('data-del-block')), 1);
       renderBlocksList(topic); renderPaper(); saveData();
     });
   });
@@ -2288,79 +2521,47 @@ blockToolbar.querySelectorAll('.block-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     const active = getActiveTopic();
     if (!active) { alert('Please select a topic first!'); return; }
-
     const type = btn.getAttribute('data-type');
-
-    if (type === 'symbols') {
-      symbolsModal.classList.add('active');
-      return;
-    }
-
+    if (type === 'symbols') { symbolsModal.classList.add('active'); return; }
     const newBlock = { type: type, content: '' };
     if (type === 'bullets' || type === 'numbered') newBlock.items = [''];
-
     active.topic.blocks.push(newBlock);
     renderBlocksList(active.topic); renderPaper(); saveData();
-
-    setTimeout(() => {
-      blocksList.lastElementChild?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 100);
+    setTimeout(() => { blocksList.lastElementChild?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 100);
   });
 });
 
 /* ================= SYMBOLS ================= */
-const SYMBOLS = [
-  '→','←','↑','↓','↔','⇒','⇐','⇔','∴','∵','°','√','π','∞','≠','≤','≥','±','×','÷',
-  'α','β','γ','δ','ε','θ','λ','μ','π','σ','φ','ω','Δ','Ω','∑','∏','∫','∂','∇','∈',
-  '∉','⊂','⊃','∪','∩','∅','∀','∃','¬','∧','∨','⊕','≈','∝','≡','∼'
-];
+const SYMBOLS = ['→','←','↑','↓','↔','⇒','⇐','⇔','∴','∵','°','√','π','∞','≠','≤','≥','±','×','÷','α','β','γ','δ','ε','θ','λ','μ','π','σ','φ','ω','Δ','Ω','∑','∏','∫','∂','∇','∈','∉','⊂','⊃','∪','∩','∅','∀','∃','¬','∧','∨','⊕','≈','∝','≡','∼'];
 
 function renderSymbols() {
-  symbolGrid.innerHTML = SYMBOLS.map(s => 
-    `<button class="symbol-btn" data-symbol="${s}">${s}</button>`
-  ).join('');
-  
+  symbolGrid.innerHTML = SYMBOLS.map(s => `<button class="symbol-btn" data-symbol="${s}">${s}</button>`).join('');
   symbolGrid.querySelectorAll('[data-symbol]').forEach(btn => {
     btn.addEventListener('click', () => {
       const symbol = btn.getAttribute('data-symbol');
       navigator.clipboard.writeText(symbol).then(() => {
         btn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
         btn.style.color = 'white';
-        setTimeout(() => {
-          btn.style.background = '';
-          btn.style.color = '';
-        }, 500);
-      }).catch(() => {
-        prompt('Copy this symbol:', symbol);
-      });
+        setTimeout(() => { btn.style.background = ''; btn.style.color = ''; }, 500);
+      }).catch(() => prompt('Copy:', symbol));
     });
   });
 }
 
 closeSymbolsModal.addEventListener('click', () => symbolsModal.classList.remove('active'));
 closeSymbolsBtn.addEventListener('click', () => symbolsModal.classList.remove('active'));
-symbolsModal.addEventListener('click', (e) => {
-  if (e.target === symbolsModal) symbolsModal.classList.remove('active');
-});
+symbolsModal.addEventListener('click', (e) => { if (e.target === symbolsModal) symbolsModal.classList.remove('active'); });
 
 /* ================= TEMPLATES ================= */
 const TEMPLATES = [
-  { icon: '🔬', title: 'Physics Notes', desc: 'Motion, Force, Energy', 
-    data: { subject: 'Physics', chapters: ['Chapter 1: Motion', 'Chapter 2: Force', 'Chapter 3: Energy'] } },
-  { icon: '🧪', title: 'Chemistry Notes', desc: 'Reactions, Elements',
-    data: { subject: 'Chemistry', chapters: ['Chapter 1: Matter', 'Chapter 2: Atoms', 'Chapter 3: Reactions'] } },
-  { icon: '🧬', title: 'Biology Notes', desc: 'Cells, Systems',
-    data: { subject: 'Biology', chapters: ['Chapter 1: Cell', 'Chapter 2: Tissues', 'Chapter 3: Systems'] } },
-  { icon: '📐', title: 'Math Notes', desc: 'Algebra, Geometry',
-    data: { subject: 'Mathematics', chapters: ['Chapter 1: Algebra', 'Chapter 2: Geometry', 'Chapter 3: Trigonometry'] } },
-  { icon: '📜', title: 'History Notes', desc: 'Timeline, Events',
-    data: { subject: 'History', chapters: ['Chapter 1: Ancient', 'Chapter 2: Medieval', 'Chapter 3: Modern'] } },
-  { icon: '📖', title: 'English Notes', desc: 'Grammar, Literature',
-    data: { subject: 'English', chapters: ['Chapter 1: Grammar', 'Chapter 2: Literature', 'Chapter 3: Writing'] } },
-  { icon: '🖥️', title: 'Computer Notes', desc: 'Hardware, Software',
-    data: { subject: 'Computer', chapters: ['Chapter 1: Basics', 'Chapter 2: Software', 'Chapter 3: Internet'] } },
-  { icon: '🌍', title: 'Geography Notes', desc: 'Earth, Climate',
-    data: { subject: 'Geography', chapters: ['Chapter 1: Earth', 'Chapter 2: Climate', 'Chapter 3: Resources'] } }
+  { icon: '🔬', title: 'Physics Notes', desc: 'Motion, Force, Energy', data: { subject: 'Physics', chapters: ['Chapter 1: Motion', 'Chapter 2: Force', 'Chapter 3: Energy'] } },
+  { icon: '🧪', title: 'Chemistry Notes', desc: 'Reactions, Elements', data: { subject: 'Chemistry', chapters: ['Chapter 1: Matter', 'Chapter 2: Atoms', 'Chapter 3: Reactions'] } },
+  { icon: '🧬', title: 'Biology Notes', desc: 'Cells, Systems', data: { subject: 'Biology', chapters: ['Chapter 1: Cell', 'Chapter 2: Tissues', 'Chapter 3: Systems'] } },
+  { icon: '📐', title: 'Math Notes', desc: 'Algebra, Geometry', data: { subject: 'Mathematics', chapters: ['Chapter 1: Algebra', 'Chapter 2: Geometry', 'Chapter 3: Trigonometry'] } },
+  { icon: '📜', title: 'History Notes', desc: 'Timeline, Events', data: { subject: 'History', chapters: ['Chapter 1: Ancient', 'Chapter 2: Medieval', 'Chapter 3: Modern'] } },
+  { icon: '📖', title: 'English Notes', desc: 'Grammar, Literature', data: { subject: 'English', chapters: ['Chapter 1: Grammar', 'Chapter 2: Literature', 'Chapter 3: Writing'] } },
+  { icon: '🖥️', title: 'Computer Notes', desc: 'Hardware, Software', data: { subject: 'Computer', chapters: ['Chapter 1: Basics', 'Chapter 2: Software', 'Chapter 3: Internet'] } },
+  { icon: '🌍', title: 'Geography Notes', desc: 'Earth, Climate', data: { subject: 'Geography', chapters: ['Chapter 1: Earth', 'Chapter 2: Climate', 'Chapter 3: Resources'] } }
 ];
 
 function renderTemplates() {
@@ -2371,50 +2572,31 @@ function renderTemplates() {
       <div class="tpl-desc">${t.desc}</div>
     </div>
   `).join('');
-
   templateGrid.querySelectorAll('[data-tpl-idx]').forEach(el => {
     el.addEventListener('click', () => {
-      const idx = parseInt(el.getAttribute('data-tpl-idx'));
-      const tpl = TEMPLATES[idx];
-      applyTemplate(tpl);
+      const tpl = TEMPLATES[parseInt(el.getAttribute('data-tpl-idx'))];
       templatesModal.classList.remove('active');
+      withLoading('Loading template...', `Setting up ${tpl.title}`, () => applyTemplate(tpl));
     });
   });
 }
 
 function applyTemplate(tpl) {
-  if (!confirm(`Create "${tpl.title}"? Current notes' content will be replaced (library saved separately).`)) return;
-
   const notes = getActiveNotes();
   if (!notes) return;
-
-  // Clear existing
   notes.data.chapters = [];
   notes.data.header.subjectName = tpl.data.subject;
   notes.data.header.chapterName = '';
-  
   tpl.data.chapters.forEach(chTitle => {
-    notes.data.chapters.push({
-      id: 'ch_' + (idCounter++),
-      title: chTitle,
-      collapsed: true,
-      topics: []
-    });
+    notes.data.chapters.push({ id: 'ch_' + (idCounter++), title: chTitle, collapsed: true, topics: [] });
   });
-
   syncUIWithActiveNotes();
   renderChaptersTree(); renderPaper(); saveData();
-  alert(`✅ ${tpl.title} template loaded! Now add topics to each chapter.`);
 }
 
-templatesBtn.addEventListener('click', () => {
-  renderTemplates();
-  templatesModal.classList.add('active');
-});
+templatesBtn.addEventListener('click', () => { renderTemplates(); templatesModal.classList.add('active'); });
 closeTemplatesModal.addEventListener('click', () => templatesModal.classList.remove('active'));
-templatesModal.addEventListener('click', (e) => {
-  if (e.target === templatesModal) templatesModal.classList.remove('active');
-});
+templatesModal.addEventListener('click', (e) => { if (e.target === templatesModal) templatesModal.classList.remove('active'); });
 
 /* ================= BULK IMPORT ================= */
 bulkImportBtn.addEventListener('click', () => {
@@ -2426,9 +2608,7 @@ bulkImportBtn.addEventListener('click', () => {
 
 closeBulkModal.addEventListener('click', () => bulkModal.classList.remove('active'));
 cancelBulkModal.addEventListener('click', () => bulkModal.classList.remove('active'));
-bulkModal.addEventListener('click', (e) => {
-  if (e.target === bulkModal) bulkModal.classList.remove('active');
-});
+bulkModal.addEventListener('click', (e) => { if (e.target === bulkModal) bulkModal.classList.remove('active'); });
 
 bulkTextarea.addEventListener('input', () => {
   const parsed = parseBulkNotes(bulkTextarea.value);
@@ -2443,7 +2623,7 @@ bulkTextarea.addEventListener('input', () => {
     bulkStats.style.display = 'block';
     bulkStats.style.background = 'linear-gradient(135deg, #ecfdf5, #d1fae5)';
     bulkStats.style.color = '#059669';
-    bulkStats.textContent = `✅ Ready: ${parsed.chapters.length} chapters, ${totalTopics} topics, ${totalBlocks} content blocks`;
+    bulkStats.textContent = `✅ Ready: ${parsed.chapters.length} chapters, ${totalTopics} topics, ${totalBlocks} blocks`;
   } else {
     bulkStats.style.display = 'none';
   }
@@ -2458,38 +2638,22 @@ function parseBulkNotes(text) {
   let pendingNumbered = null;
 
   function flushPending() {
-    if (pendingBullets && currentTopic) {
-      currentTopic.blocks.push({ type: 'bullets', items: pendingBullets });
-      pendingBullets = null;
-    }
-    if (pendingNumbered && currentTopic) {
-      currentTopic.blocks.push({ type: 'numbered', items: pendingNumbered });
-      pendingNumbered = null;
-    }
+    if (pendingBullets && currentTopic) { currentTopic.blocks.push({ type: 'bullets', items: pendingBullets }); pendingBullets = null; }
+    if (pendingNumbered && currentTopic) { currentTopic.blocks.push({ type: 'numbered', items: pendingNumbered }); pendingNumbered = null; }
   }
 
   for (let i = 0; i < lines.length; i++) {
-    const rawLine = lines[i];
-    const line = rawLine.trim();
-    if (!line) {
-      flushPending();
-      continue;
-    }
+    const line = lines[i].trim();
+    if (!line) { flushPending(); continue; }
 
     if (line.startsWith('## ')) {
       flushPending();
-      if (!currentChapter) {
-        result.error = `Line ${i + 1}: Topic found before any chapter. Add "# Chapter Name" first.`;
-        return result;
-      }
+      if (!currentChapter) { result.error = `Line ${i+1}: Topic before chapter`; return result; }
       currentTopic = { title: line.substring(3).trim(), blocks: [] };
       currentChapter.topics.push(currentTopic);
     } else if (line.startsWith('### ')) {
       flushPending();
-      if (!currentTopic) {
-        result.error = `Line ${i + 1}: Sub-heading found before any topic.`;
-        return result;
-      }
+      if (!currentTopic) continue;
       currentTopic.blocks.push({ type: 'h3', content: line.substring(4).trim() });
     } else if (line.startsWith('# ')) {
       flushPending();
@@ -2497,36 +2661,28 @@ function parseBulkNotes(text) {
       result.chapters.push(currentChapter);
       currentTopic = null;
     } else if (line.startsWith('!def ')) {
-      flushPending();
-      if (!currentTopic) continue;
+      flushPending(); if (!currentTopic) continue;
       currentTopic.blocks.push({ type: 'definition', content: line.substring(5).trim() });
     } else if (line.startsWith('!formula ')) {
-      flushPending();
-      if (!currentTopic) continue;
+      flushPending(); if (!currentTopic) continue;
       currentTopic.blocks.push({ type: 'formula', content: line.substring(9).trim() });
     } else if (line.startsWith('!imp ')) {
-      flushPending();
-      if (!currentTopic) continue;
+      flushPending(); if (!currentTopic) continue;
       currentTopic.blocks.push({ type: 'important', content: line.substring(5).trim() });
     } else if (line.startsWith('!ex ')) {
-      flushPending();
-      if (!currentTopic) continue;
+      flushPending(); if (!currentTopic) continue;
       currentTopic.blocks.push({ type: 'example', content: line.substring(4).trim() });
     } else if (line.startsWith('!note ')) {
-      flushPending();
-      if (!currentTopic) continue;
+      flushPending(); if (!currentTopic) continue;
       currentTopic.blocks.push({ type: 'note', content: line.substring(6).trim() });
     } else if (line.startsWith('!h1 ')) {
-      flushPending();
-      if (!currentTopic) continue;
+      flushPending(); if (!currentTopic) continue;
       currentTopic.blocks.push({ type: 'h1', content: line.substring(4).trim() });
     } else if (line.startsWith('!h2 ')) {
-      flushPending();
-      if (!currentTopic) continue;
+      flushPending(); if (!currentTopic) continue;
       currentTopic.blocks.push({ type: 'h2', content: line.substring(4).trim() });
     } else if (line.startsWith('!div') || line === '---') {
-      flushPending();
-      if (!currentTopic) continue;
+      flushPending(); if (!currentTopic) continue;
       currentTopic.blocks.push({ type: 'divider', content: '' });
     } else if (/^[-*] /.test(line)) {
       if (!currentTopic) continue;
@@ -2545,7 +2701,6 @@ function parseBulkNotes(text) {
     }
   }
   flushPending();
-
   return result;
 }
 
@@ -2554,131 +2709,112 @@ importBulkBtn.addEventListener('click', () => {
   if (!text) { alert('Please paste notes first!'); return; }
   const parsed = parseBulkNotes(text);
   if (parsed.error) { alert(parsed.error); return; }
-  if (!parsed.chapters.length) { alert('No chapters found! Use "# Chapter Name" to mark chapters.'); return; }
-
+  if (!parsed.chapters.length) { alert('No chapters found! Use "# Chapter Name"'); return; }
   const notes = getActiveNotes();
   if (!notes) return;
 
-  if (notes.data.chapters.length && !confirm('Existing chapters will be kept. New chapters will be appended. Continue?')) return;
-
-  parsed.chapters.forEach(ch => {
-    notes.data.chapters.push({
-      id: 'ch_' + (idCounter++),
-      title: ch.title,
-      collapsed: true,
-      topics: ch.topics.map(tp => ({
-        id: 'tp_' + (idCounter++),
-        title: tp.title,
-        blocks: tp.blocks
-      }))
+  withLoading('Importing notes...', `Processing ${parsed.chapters.length} chapters`, () => {
+    parsed.chapters.forEach(ch => {
+      notes.data.chapters.push({
+        id: 'ch_' + (idCounter++),
+        title: ch.title,
+        collapsed: true,
+        topics: ch.topics.map(tp => ({ id: 'tp_' + (idCounter++), title: tp.title, blocks: tp.blocks }))
+      });
     });
+    renderChaptersTree(); renderPaper(); saveData();
+    bulkModal.classList.remove('active');
   });
-
-  renderChaptersTree(); renderPaper(); saveData();
-  bulkModal.classList.remove('active');
-  alert(`✅ Imported ${parsed.chapters.length} chapters!`);
 });
 
-/* ================= EXPORT / IMPORT JSON ================= */
+/* ================= EXPORT / IMPORT ================= */
 exportJsonBtn.addEventListener('click', () => {
   const notes = getActiveNotes();
   if (!notes) return;
-  const dataStr = JSON.stringify(notes, null, 2);
-  const blob = new Blob([dataStr], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = (notes.title || 'notes') + '.json';
-  a.click();
-  URL.revokeObjectURL(url);
+  withLoading('Exporting...', 'Preparing JSON file', () => {
+    const blob = new Blob([JSON.stringify(notes, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = (notes.title || 'notes') + '.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  });
 });
 
-importJsonBtn.addEventListener('click', () => {
-  jsonFileInput.click();
-});
+importJsonBtn.addEventListener('click', () => jsonFileInput.click());
 
 jsonFileInput.addEventListener('change', (e) => {
   const file = e.target.files[0];
   if (!file) return;
   const reader = new FileReader();
   reader.onload = (ev) => {
-    try {
-      const data = JSON.parse(ev.target.result);
-      if (!data.data || !Array.isArray(data.data.chapters)) {
-        alert('Invalid JSON file!');
-        return;
-      }
-      const newId = 'notes_' + (idCounter++);
-      data.id = newId;
-      data.title = data.title || 'Imported Notes';
-      data.createdAt = new Date().toISOString();
-      library.push(data);
-      activeNotesId = newId;
-      syncUIWithActiveNotes();
-      renderLibrary(); renderChaptersTree(); renderPaper(); saveData();
-      alert('✅ Notes imported successfully!');
-    } catch (err) {
-      alert('Error reading file: ' + err.message);
-    }
+    withLoading('Importing...', 'Reading JSON file', () => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        if (!data.data || !Array.isArray(data.data.chapters)) { alert('Invalid JSON!'); return; }
+        const newId = 'notes_' + (idCounter++);
+        data.id = newId;
+        data.title = data.title || 'Imported Notes';
+        data.createdAt = new Date().toISOString();
+        if (!data.data.options) data.data.options = { twoColEnabled: true, borderEnabled: false, watermarkEnabled: false, watermarkText: 'NOTES' };
+        library.push(data);
+        activeNotesId = newId;
+        syncUIWithActiveNotes(); renderLibrary(); renderChaptersTree(); renderPaper(); saveData();
+      } catch (err) { alert('Error: ' + err.message); }
+    });
   };
   reader.readAsText(file);
   jsonFileInput.value = '';
 });
 
-/* ================= EXPORT TXT ================= */
 exportTxtBtn.addEventListener('click', () => {
   const notes = getActiveNotes();
   if (!notes) return;
-  let txt = '';
-  txt += `NOTES: ${notes.title}\n`;
-  txt += `Subject: ${notes.data.header.subjectName}\n`;
-  txt += `Chapter: ${notes.data.header.chapterName}\n\n`;
-  notes.data.chapters.forEach((ch, i) => {
-    txt += `${i + 1}. ${ch.title}\n`;
-    ch.topics.forEach((tp, j) => {
-      txt += `   ${j + 1}. ${tp.title}\n`;
-      tp.blocks.forEach(b => {
-        if (b.content) txt += `      - ${b.content}\n`;
-        if (b.items) b.items.forEach(it => txt += `      • ${it}\n`);
+  withLoading('Exporting TXT...', 'Preparing text file', () => {
+    let txt = `NOTES: ${notes.title}\nSubject: ${notes.data.header.subjectName}\n\n`;
+    notes.data.chapters.forEach((ch, i) => {
+      txt += `${i + 1}. ${ch.title}\n`;
+      ch.topics.forEach((tp, j) => {
+        txt += `   ${j + 1}. ${tp.title}\n`;
+        tp.blocks.forEach(b => {
+          if (b.content) txt += `      - ${b.content}\n`;
+          if (b.items) b.items.forEach(it => txt += `      • ${it}\n`);
+        });
       });
+      txt += '\n';
     });
-    txt += '\n';
+    const blob = new Blob([txt], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = (notes.title || 'notes') + '.txt';
+    a.click();
+    URL.revokeObjectURL(url);
   });
-  const blob = new Blob([txt], { type: 'text/plain' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = (notes.title || 'notes') + '.txt';
-  a.click();
-  URL.revokeObjectURL(url);
 });
 
-/* ================= HELP ================= */
 printHelpBtn.addEventListener('click', () => {
-  alert(`📚 NOTES MAKER PRO — Quick Help
+  alert(`📚 NOTES MAKER PRO — Help
 
-1. LIBRARY: "➕ New Notes" से multiple subjects बनाओ
+1. LIBRARY: Multiple subjects save करो
 2. DETAILS: Subject, Chapter, Class भरो
-3. CHAPTERS: "➕ Add New Chapter" दबाओ
-4. TOPICS: Chapter में "+" दबाकर topics बनाओ
+3. CHAPTERS: "Add New Chapter" दबाओ
+4. TOPICS: Chapter में "+" से topics बनाओ
 5. CONTENT: Topic select करो → block buttons दबाओ
-6. BULK IMPORT: Text paste करके पूरे notes auto-generate
-7. SYMBOLS: Math/Science symbols click से copy
-8. TEMPLATES: Ready-made structure load करो
-9. EXPORT: JSON backup या TXT format
-10. DOWNLOAD: A4 PDF ready!
+6. BULK IMPORT: Text paste करके auto-generate
+7. TEMPLATES: Ready-made structure
+8. 2-COLUMN: ON करके कम pages में ज़्यादा notes
+9. EXPORT: JSON backup या TXT
 
 📦 BULK FORMAT:
 # Chapter 1: Motion
 ## What is Motion?
-Motion is the change in position...
 !def Motion: An object...
 !formula Speed = Distance/Time
 !imp Always mention direction.
 - Bullet 1
-- Bullet 2
-
-चलो शुरू करो! 🚀`);
+- Bullet 2`);
 });
 
 /* ================= RENDER PAPER ================= */
@@ -2697,9 +2833,7 @@ function renderPaper() {
     paperBlocks.push({ type: 'chapter-heading', title: ch.title });
     ch.topics.forEach(tp => {
       paperBlocks.push({ type: 'topic-heading', title: tp.title });
-      tp.blocks.forEach(b => {
-        paperBlocks.push({ type: 'content-block', block: b });
-      });
+      tp.blocks.forEach(b => paperBlocks.push({ type: 'content-block', block: b }));
     });
   });
 
@@ -2708,13 +2842,12 @@ function renderPaper() {
 
 function paginateAndRender(paperBlocks) {
   paperWrapper.innerHTML = '';
-
   const notes = getActiveNotes();
   if (!notes) return;
 
   const measurer = document.createElement('div');
   measurer.className = 'a4-page';
-  measurer.style.cssText = `position: absolute; visibility: hidden; top: -99999px; left: -99999px; pointer-events: none; height: auto; min-height: 0; overflow: visible;`;
+  measurer.style.cssText = 'position: absolute; visibility: hidden; top: -99999px; left: -99999px; pointer-events: none; height: auto; min-height: 0; overflow: visible;';
   const measurerContent = document.createElement('div');
   measurerContent.className = 'page-content';
   measurerContent.style.cssText = 'overflow: visible; display: block; height: auto; min-height: 0; padding: 0;';
@@ -2723,12 +2856,13 @@ function paginateAndRender(paperBlocks) {
 
   const MM_TO_PX = 96 / 25.4;
   const A4_MM = 297;
-  const PAD_TOP_MM = 15;
-  const PAD_BOTTOM_MM = 18;
-  const FOOTER_RESERVE_MM = 8;
+  const PAD_TOP_MM = 12;
+  const PAD_BOTTOM_MM = 15;
+  const FOOTER_RESERVE_MM = 7;
   const SAFETY_MM = 2;
-  const USABLE_FIRST_PX = (A4_MM - PAD_TOP_MM - PAD_BOTTOM_MM - FOOTER_RESERVE_MM - SAFETY_MM) * MM_TO_PX;
-  const USABLE_OTHER_PX = USABLE_FIRST_PX;
+  const USABLE_PX = (A4_MM - PAD_TOP_MM - PAD_BOTTOM_MM - FOOTER_RESERVE_MM - SAFETY_MM) * MM_TO_PX;
+
+  const twoCol = notes.data.options.twoColEnabled !== false;
 
   function renderBlocksTo(targetEl, list, pageIdx) {
     if (pageIdx === 0) {
@@ -2739,6 +2873,11 @@ function paginateAndRender(paperBlocks) {
         while (htmp.firstChild) targetEl.appendChild(htmp.firstChild);
       }
     }
+
+    // Wrapper for 2-column content flow
+    const flowDiv = document.createElement('div');
+    flowDiv.className = 'notes-content-flow' + (twoCol ? '' : ' single-col');
+
     list.forEach(item => {
       if (item.type === 'header') return;
       let html = '';
@@ -2748,9 +2887,11 @@ function paginateAndRender(paperBlocks) {
       if (html) {
         const tmp = document.createElement('div');
         tmp.innerHTML = html;
-        while (tmp.firstChild) targetEl.appendChild(tmp.firstChild);
+        while (tmp.firstChild) flowDiv.appendChild(tmp.firstChild);
       }
     });
+
+    targetEl.appendChild(flowDiv);
   }
 
   function renderToMeasurer(list, pageIdx = 0) {
@@ -2765,10 +2906,8 @@ function paginateAndRender(paperBlocks) {
   let currentPage = [];
   for (let i = 0; i < paperBlocks.length; i++) {
     const test = [...currentPage, paperBlocks[i]];
-    const isFirst = pages.length === 0;
-    const usable = isFirst ? USABLE_FIRST_PX : USABLE_OTHER_PX;
     const h = renderToMeasurer(test, pages.length);
-    if (h > usable && currentPage.length > 0) {
+    if (h > USABLE_PX && currentPage.length > 0) {
       pages.push(currentPage);
       currentPage = [paperBlocks[i]];
     } else {
@@ -2811,7 +2950,7 @@ function paginateAndRender(paperBlocks) {
       }
       const emptyDiv = document.createElement('div');
       emptyDiv.className = 'empty-state';
-      emptyDiv.textContent = 'No content added yet. Start by adding chapters and topics.';
+      emptyDiv.textContent = 'No content added yet.';
       content.appendChild(emptyDiv);
     } else {
       renderBlocksTo(content, pageBlocks, pageIdx);
@@ -2856,31 +2995,20 @@ function buildNotesHeaderHTML() {
 function renderContentBlockHTML(block) {
   const type = block.type;
   const content = escapeHtml(block.content || '').replace(/\n/g, '<br>');
-  
+
   if (type === 'h1') return `<div class="note-block note-heading-1">${content}</div>`;
   if (type === 'h2') return `<div class="note-block note-heading-2">${content}</div>`;
   if (type === 'h3') return `<div class="note-block note-heading-3">${content}</div>`;
   if (type === 'paragraph') return `<div class="note-block note-paragraph">${content}</div>`;
-  if (type === 'bullets') {
-    const items = (block.items || []).filter(i => i.trim());
-    if (!items.length) return '';
-    return `<ul class="note-bullets">${items.map(i => `<li>${escapeHtml(i)}</li>`).join('')}</ul>`;
-  }
-  if (type === 'numbered') {
-    const items = (block.items || []).filter(i => i.trim());
-    if (!items.length) return '';
-    return `<ol class="note-numbered">${items.map(i => `<li>${escapeHtml(i)}</li>`).join('')}</ol>`;
-  }
+  if (type === 'bullets') { const items = (block.items || []).filter(i => i.trim()); if (!items.length) return ''; return `<ul class="note-bullets">${items.map(i => `<li>${escapeHtml(i)}</li>`).join('')}</ul>`; }
+  if (type === 'numbered') { const items = (block.items || []).filter(i => i.trim()); if (!items.length) return ''; return `<ol class="note-numbered">${items.map(i => `<li>${escapeHtml(i)}</li>`).join('')}</ol>`; }
   if (type === 'definition') { if (!content.trim()) return ''; return `<div class="note-definition-box"><div class="box-label">📖 Definition</div><div class="box-text">${content}</div></div>`; }
   if (type === 'formula') { if (!content.trim()) return ''; return `<div class="note-formula-box"><div class="box-label">🧮 Formula</div><div class="box-text">${content}</div></div>`; }
   if (type === 'important') { if (!content.trim()) return ''; return `<div class="note-important-box"><div class="box-label">⚠️ Important</div><div class="box-text">${content}</div></div>`; }
   if (type === 'example') { if (!content.trim()) return ''; return `<div class="note-example-box"><div class="box-label">📝 Example</div><div class="box-text">${content}</div></div>`; }
   if (type === 'note') { if (!content.trim()) return ''; return `<div class="note-note-box"><div class="box-label">💡 Note</div><div class="box-text">${content}</div></div>`; }
   if (type === 'divider') return `<hr class="note-divider">`;
-  if (type === 'image') {
-    if (!block.content) return '';
-    return `<img src="${escapeHtml(block.content)}" class="note-image" alt="Image">`;
-  }
+  if (type === 'image') { if (!block.content) return ''; return `<img src="${escapeHtml(block.content)}" class="note-image" alt="Image">`; }
   if (type === 'table') {
     if (!block.content) return '';
     const rows = block.content.split('\n').filter(r => r.trim());
@@ -2897,7 +3025,6 @@ function renderContentBlockHTML(block) {
   return '';
 }
 
-/* ================= UTILS ================= */
 function escapeHtml(str) {
   return String(str || '')
     .replace(/&/g, '&amp;').replace(/</g, '&lt;')
@@ -2910,32 +3037,34 @@ downloadBtn.addEventListener('click', () => {
   const notes = getActiveNotes();
   if (!notes) { alert('No notes selected!'); return; }
   const hasContent = notes.data.chapters.some(ch => ch.topics.some(tp => tp.blocks.some(b => (b.content && b.content.trim()) || (b.items && b.items.some(i => i.trim())))));
-  if (!hasContent) { alert('Please add some content first!'); return; }
+  if (!hasContent) { alert('Please add content first!'); return; }
 
-  const pages = paperWrapper.querySelectorAll('.a4-page');
-  const originalStyles = [];
-  pages.forEach((p, i) => {
-    originalStyles[i] = p.style.cssText;
-    p.style.transform = 'none';
-    p.style.transformOrigin = 'initial';
-    p.style.boxShadow = 'none';
-    p.style.margin = '0';
-  });
-
-  const filename = (notes.title || 'Notes').replace(/[^a-z0-9\-\.]/gi, '-').replace(/-+/g, '-') + '.pdf';
-  const opt = {
-    margin: 0, filename,
-    image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true, allowTaint: true, scrollY: 0, scrollX: 0, letterRendering: true, logging: false, windowWidth: 794, windowHeight: 1123 },
-    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
-    pagebreak: { mode: ['css', 'legacy'], avoid: ['.note-block', '.note-chapter-heading', '.note-topic-heading', '.note-definition-box', '.note-formula-box', '.note-important-box', '.note-example-box', '.note-note-box', '.note-bullets', '.note-numbered', '.note-table', '.note-image'] }
-  };
-
-  setTimeout(() => {
-    html2pdf().set(opt).from(paperWrapper).save().then(() => {
-      pages.forEach((p, i) => { p.style.cssText = originalStyles[i] || ''; });
+  withLoading('Generating PDF...', 'Creating your notes PDF', () => {
+    const pages = paperWrapper.querySelectorAll('.a4-page');
+    const originalStyles = [];
+    pages.forEach((p, i) => {
+      originalStyles[i] = p.style.cssText;
+      p.style.transform = 'none';
+      p.style.transformOrigin = 'initial';
+      p.style.boxShadow = 'none';
+      p.style.margin = '0';
     });
-  }, 100);
+
+    const filename = (notes.title || 'Notes').replace(/[^a-z0-9\-\.]/gi, '-').replace(/-+/g, '-') + '.pdf';
+    const opt = {
+      margin: 0, filename,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, allowTaint: true, scrollY: 0, scrollX: 0, letterRendering: true, logging: false, windowWidth: 794, windowHeight: 1123 },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
+      pagebreak: { mode: ['css', 'legacy'], avoid: ['.note-block', '.note-chapter-heading', '.note-topic-heading', '.note-definition-box', '.note-formula-box', '.note-important-box', '.note-example-box', '.note-note-box', '.note-bullets', '.note-numbered', '.note-table', '.note-image', '.notes-header'] }
+    };
+
+    setTimeout(() => {
+      html2pdf().set(opt).from(paperWrapper).save().then(() => {
+        pages.forEach((p, i) => { p.style.cssText = originalStyles[i] || ''; });
+      });
+    }, 200);
+  });
 });
 
 /* ================= PRINT ================= */
@@ -2943,35 +3072,39 @@ printBtn.addEventListener('click', () => {
   const notes = getActiveNotes();
   if (!notes) { alert('No notes selected!'); return; }
   const hasContent = notes.data.chapters.some(ch => ch.topics.some(tp => tp.blocks.some(b => (b.content && b.content.trim()) || (b.items && b.items.some(i => i.trim())))));
-  if (!hasContent) { alert('Please add some content first!'); return; }
+  if (!hasContent) { alert('Please add content first!'); return; }
 
-  paperWrapper.querySelectorAll('.a4-page').forEach(p => {
-    p.dataset.originalTransform = p.style.transform;
-    p.style.transform = 'none';
-  });
-  window.print();
-  setTimeout(() => {
+  withLoading('Preparing print...', 'Opening print dialog', () => {
     paperWrapper.querySelectorAll('.a4-page').forEach(p => {
-      if (p.dataset.originalTransform) p.style.transform = p.dataset.originalTransform;
+      p.dataset.originalTransform = p.style.transform;
+      p.style.transform = 'none';
     });
-  }, 500);
+    setTimeout(() => {
+      window.print();
+      setTimeout(() => {
+        paperWrapper.querySelectorAll('.a4-page').forEach(p => {
+          if (p.dataset.originalTransform) p.style.transform = p.dataset.originalTransform;
+        });
+      }, 500);
+    }, 300);
+  });
 });
 
 /* ================= CLEAR ALL ================= */
 clearAllBtn.addEventListener('click', () => {
   const notes = getActiveNotes();
   if (!notes) return;
-  if (!confirm('Delete all content from current notes? (Other notes in library will remain safe)')) return;
-  
-  notes.data.chapters = [];
-  notes.data.header = { subjectName: '', chapterName: '', className: '', teacherName: '', schoolName: '', dateField: '' };
-  notes.data.options = { borderEnabled: false, watermarkEnabled: false, watermarkText: 'NOTES' };
-  activeTopicId = null;
-  activeChapterId = null;
-
-  syncUIWithActiveNotes();
-  contentEditorSection.style.display = 'none';
-  renderChaptersTree(); renderPaper(); saveData();
+  if (!confirm('Delete all content from current notes?')) return;
+  withLoading('Clearing...', 'Removing all content', () => {
+    notes.data.chapters = [];
+    notes.data.header = { subjectName: '', chapterName: '', className: '', teacherName: '', schoolName: '', dateField: '' };
+    notes.data.options = { twoColEnabled: true, borderEnabled: false, watermarkEnabled: false, watermarkText: 'NOTES' };
+    activeTopicId = null;
+    activeChapterId = null;
+    syncUIWithActiveNotes();
+    contentEditorSection.style.display = 'none';
+    renderChaptersTree(); renderPaper(); saveData();
+  });
 });
 
 /* ================= INIT ================= */
@@ -2982,8 +3115,6 @@ function init() {
   if (activeNotesId) syncUIWithActiveNotes();
   renderChaptersTree();
   renderPaper();
-
-  // Save on window close
   window.addEventListener('beforeunload', saveData);
 }
 init();
